@@ -62,7 +62,6 @@ namespace cron
       {}
    };
 
-
    struct cron_standard_traits
    {
       static const cron_int CRON_MIN_SECONDS = 0;
@@ -98,47 +97,6 @@ namespace cron
       static std::vector<std::string>& MONTHS()
       {
          static std::vector<std::string> months = { "NIL", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };
-         return months;
-      }
-#endif
-   };
-
-   struct cron_oracle_traits
-   {
-      static const cron_int CRON_MIN_SECONDS = 0;
-      static const cron_int CRON_MAX_SECONDS = 59;
-
-      static const cron_int CRON_MIN_MINUTES = 0;
-      static const cron_int CRON_MAX_MINUTES = 59;
-
-      static const cron_int CRON_MIN_HOURS = 0;
-      static const cron_int CRON_MAX_HOURS = 23;
-
-      static const cron_int CRON_MIN_DAYS_OF_WEEK = 1;
-      static const cron_int CRON_MAX_DAYS_OF_WEEK = 7;
-
-      static const cron_int CRON_MIN_DAYS_OF_MONTH = 1;
-      static const cron_int CRON_MAX_DAYS_OF_MONTH = 31;
-
-      static const cron_int CRON_MIN_MONTHS = 0;
-      static const cron_int CRON_MAX_MONTHS = 11;
-
-      static const cron_int CRON_MAX_YEARS_DIFF = 4;
-
-#ifdef CRONCPP_IS_CPP17
-      static const inline std::vector<std::string> DAYS = { "NIL", "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };
-      static const inline std::vector<std::string> MONTHS = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };
-#else
-
-      static std::vector<std::string>& DAYS()
-      {
-         static std::vector<std::string> days = { "NIL", "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };
-         return days;
-      }
-
-      static std::vector<std::string>& MONTHS()
-      {
-         static std::vector<std::string> months = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };
          return months;
       }
 #endif
@@ -714,8 +672,8 @@ namespace cron
          {
             add_to_field(date, cron_field::day_of_month, 1);
 
-            day_of_month = date.tm_mday;
-            day_of_week = date.tm_wday;
+            day_of_month = static_cast<size_t>(date.tm_mday);
+            day_of_week = static_cast<size_t>(date.tm_wday);
 
             reset_all_fields(date, marked_fields);
          }
@@ -733,7 +691,7 @@ namespace cron
          std::bitset<7> marked_fields{ 0 };
          std::bitset<7> empty_list{ 0 };
 
-         unsigned int second = date.tm_sec;
+         unsigned int second = static_cast<unsigned int>(date.tm_sec);
          auto updated_second = find_next(
             cex.seconds,
             date,
@@ -749,7 +707,7 @@ namespace cron
             mark_field(marked_fields, cron_field::second);
          }
 
-         unsigned int minute = date.tm_min;
+         unsigned int minute = static_cast<unsigned int>(date.tm_min);
          auto update_minute = find_next(
             cex.minutes,
             date,
@@ -769,7 +727,7 @@ namespace cron
             if (!res) return res;
          }
 
-         unsigned int hour = date.tm_hour;
+         unsigned int hour = static_cast<unsigned int>(date.tm_hour);
          auto updated_hour = find_next(
             cex.hours,
             date,
@@ -789,8 +747,8 @@ namespace cron
             if (!res) return res;
          }
 
-         unsigned int day_of_week = date.tm_wday;
-         unsigned int day_of_month = date.tm_mday;
+         unsigned int day_of_week = static_cast<unsigned int>(date.tm_wday);
+         unsigned int day_of_month = static_cast<unsigned int>(date.tm_mday);
          auto updated_day_of_month = find_next_day<Traits>(
             date,
             cex.days_of_month,
@@ -808,7 +766,7 @@ namespace cron
             if (!res) return res;
          }
 
-         unsigned int month = date.tm_mon;
+         unsigned int month = static_cast<unsigned int>(date.tm_mon);
          auto updated_month = find_next(
             cex.months,
             date,
@@ -820,7 +778,7 @@ namespace cron
             marked_fields);
          if (month != updated_month)
          {
-            if (date.tm_year - dot > Traits::CRON_MAX_YEARS_DIFF)
+            if (static_cast<size_t>(date.tm_year) - dot > Traits::CRON_MAX_YEARS_DIFF)
                return false;
 
             res = find_next<Traits>(cex, date, dot);
@@ -868,7 +826,7 @@ namespace cron
       time_t original = utils::tm_to_time(date);
       if (INVALID_TIME == original) return {};
 
-      if (!detail::find_next<Traits>(cex, date, date.tm_year))
+      if (!detail::find_next<Traits>(cex, date, static_cast<size_t>(date.tm_year)))
          return {};
 
       time_t calculated = utils::tm_to_time(date);
@@ -877,7 +835,7 @@ namespace cron
       if (calculated == original)
       {
          add_to_field(date, detail::cron_field::second, 1);
-         if (!detail::find_next<Traits>(cex, date, date.tm_year))
+         if (!detail::find_next<Traits>(cex, date, static_cast<size_t>(date.tm_year)))
             return {};
       }
 
@@ -894,7 +852,7 @@ namespace cron
       time_t original = utils::tm_to_time(*dt);
       if (INVALID_TIME == original) return INVALID_TIME;
 
-      if(!detail::find_next<Traits>(cex, *dt, dt->tm_year))
+      if(!detail::find_next<Traits>(cex, *dt, static_cast<size_t>(dt->tm_year)))
          return INVALID_TIME;
 
       time_t calculated = utils::tm_to_time(*dt);
@@ -903,7 +861,7 @@ namespace cron
       if (calculated == original)
       {
          add_to_field(*dt, detail::cron_field::second, 1);
-         if(!detail::find_next<Traits>(cex, *dt, dt->tm_year))
+         if(!detail::find_next<Traits>(cex, *dt, static_cast<size_t>(dt->tm_year)))
             return INVALID_TIME;
       }
 

@@ -1,12 +1,15 @@
-cmake_minimum_required(VERSION 3.8)
-project(
-  croncpp
-  VERSION 0.0.0
-  LANGUAGES CXX)
-  
+cmake_minimum_required(VERSION 3.28)
+project(croncpp VERSION 0.0.0 LANGUAGES CXX)
+
 if(NOT DEFINED CXX_STD_VER)
   set(CXX_STD_VER cxx_std_17)
 endif()
+
+if (MSVC)
+    add_compile_options(/W4)
+else ()
+    add_compile_options(-Wall -Wextra -Wpedantic -Werror -Wconversion)
+endif ()
 
 add_library(croncpp INTERFACE)
 target_include_directories(
@@ -54,11 +57,16 @@ else()
   endif()
 endif()
 
-if(CRONCPP_BUILD_TESTS)
-  enable_testing()
-  add_subdirectory(test)
+option(CRONCPP_BUILD_TESTS "Build the croncpp tests" ON)
+option(CRONCPP_BUILD_EXAMPLE "Build the croncpp example executable" ON)
+
+if(CRONCPP_BUILD_EXAMPLE)
+  add_executable(croncpp_example main.cpp)
+  set_target_properties(croncpp_example PROPERTIES CXX_EXTENSIONS OFF)
+  target_link_libraries(croncpp_example PRIVATE croncpp croncpp_options)
 endif()
 
-if(CRONCPP_BUILD_BENCHMARK)
-  add_subdirectory(benchmark)
+if(CRONCPP_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
 endif()
